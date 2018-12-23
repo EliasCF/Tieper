@@ -1,44 +1,21 @@
 extern crate structopt;
-
 use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
-struct TieperCommand {
-    #[structopt(subcommand)]
-    action: CommandAction,
-}
+pub mod commands;
+use commands::CommandAction;
 
-#[derive(StructOpt, Debug)]
-enum CommandAction {
-    #[structopt(name = "create")]
-    Create {
-        #[structopt(short = "i")]
-        inactive: bool,
-        name: String
-    },
-    #[structopt(name = "remove")]
-    Remove {
-        id: i32
-    },
-    #[structopt(name = "start")]
-    Start {
-        id: i32
-    },
-    #[structopt(name = "stop")]
-    Stop {
-        id: i32
-    },
-    #[structopt(name = "list")]
-    List {
-        #[structopt(short = "a")]
-        active: bool,
-        #[structopt(short = "i")]
-        inactive: bool,
-        name: Option<String>
-    },
-}
+mod strategies;
+use strategies::{CreateStrategy, RemoveStrategy, StartStrategy, StopStrategy, ListStrategy};
 
 fn main() {
-    let opt = TieperCommand::from_args();
+    let opt = CommandAction::from_args();
     println!("{:?}", opt);
+
+    match opt {
+        CommandAction::Create { inactive, name } => CreateStrategy::handle(inactive, name),
+        CommandAction::Remove { id } => RemoveStrategy::handle(id),
+        CommandAction::Start { id } => StartStrategy::handle(id),
+        CommandAction::Stop { id } => StopStrategy::handle(id),
+        CommandAction::List { active, inactive, name } => ListStrategy::handle(active, inactive, name),
+    }
 }
