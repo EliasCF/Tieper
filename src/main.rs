@@ -1,8 +1,11 @@
 extern crate structopt;
 use structopt::StructOpt;
 
+pub mod db;
 pub mod commands;
+
 use commands::CommandAction;
+
 
 mod strategies;
 use strategies::{CreateStrategy, RemoveStrategy, StartStrategy, StopStrategy, ListStrategy};

@@ -5,3 +5,5 @@ authors = ["EliasCF <edimbo4@gmail.com>"]
 
 [dependencies]
 structopt = "0.2"
+mysql = "15.0.0"
+chrono = "0.4.6"
