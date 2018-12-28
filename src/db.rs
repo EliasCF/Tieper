@@ -54,7 +54,22 @@ impl SqlHandler {
                     "active" => !inactive,
                     "elapsedtime" => chrono::Duration::zero(),
                     "overalltime" => chrono::Duration::zero(),
-                });
+                }
+            );
+
+        match query_result {
+            Ok(_v) => Ok(()),
+            Err(_e) => Err(())
+        }
+    }
+
+    pub fn delete (&mut self, id: i32) -> Result<(), ()> {
+        let query_result =
+            self.connection.prep_exec(
+                "DELETE FROM keepers
+                    WHERE Id = :id",
+                params!{"id" => id}
+            );
 
         match query_result {
             Ok(_v) => Ok(()),
