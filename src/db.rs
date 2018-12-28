@@ -42,6 +42,7 @@ impl SqlHandler {
         }
     }
 
+
     pub fn insert (&mut self, inactive: bool, name: String) -> Result<(), ()> {
         let query_result =
             self.connection.prep_exec(
@@ -63,16 +64,50 @@ impl SqlHandler {
         }
     }
 
-    pub fn delete (&mut self, id: i32) -> Result<(), ()> {
+    pub fn delete (&mut self, id: i32) -> Result<String, ()> {
         let query_result =
             self.connection.prep_exec(
-                "DELETE FROM keepers
-                    WHERE Id = :id",
+                "DELETE FROM keepers 
+                 WHERE Id = :id",
                 params!{"id" => id}
             );
 
         match query_result {
-            Ok(_v) => Ok(()),
+            Ok(v) => {
+                if v.affected_rows() == 0 {
+                    return Ok(String::from(
+                        format!("Keeper id {}, was not found", id)
+                    ))
+                }
+
+                return Ok(String::from("Success"))
+            },
+            Err(_e) => Err(())
+        }
+    }
+
+    pub fn update (&mut self, id: i32, value: bool) -> Result<String, ()> {
+        let query_result =
+            self.connection.prep_exec(
+                "UPDATE keepers
+                 SET Active = :active
+                 WHERE Id = :id",
+                params!{
+                    "active" => value,
+                    "id" => id,
+                }
+            );
+
+        match query_result {
+            Ok(v) => {
+                if v.affected_rows() == 0 {
+                    return Ok(String::from(
+                        format!("Keeper id {}, was not found", id)
+                    ))
+                }
+
+                return Ok(String::from("Success"))
+            },
             Err(_e) => Err(())
         }
     }
