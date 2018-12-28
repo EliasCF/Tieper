@@ -1,4 +1,5 @@
 extern crate mysql;
+use self::mysql::params;
 
 extern crate chrono;
 
@@ -38,6 +39,26 @@ impl SqlHandler {
             Err(error) => {
                 panic!("The program was unable to connect to the database: {}", error)
             }
+        }
+    }
+
+    pub fn insert (&mut self, inactive: bool, name: String) -> Result<(), ()> {
+        let query_result =
+            self.connection.prep_exec(
+                "INSERT INTO keepers
+                    (Name, Active, ElapsedTime, OverallTime)
+                VALUES
+                    (:name, :active, :elapsedtime, :overalltime)",
+                params!{
+                    "name" => name, 
+                    "active" => !inactive,
+                    "elapsedtime" => chrono::Duration::zero(),
+                    "overalltime" => chrono::Duration::zero(),
+                });
+
+        match query_result {
+            Ok(_v) => Ok(()),
+            Err(_e) => Err(())
         }
     }
 }
