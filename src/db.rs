@@ -111,13 +111,76 @@ impl SqlHandler {
             Err(_e) => Err(())
         }
     }
-}
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Keeper {
-    id: i32,
-    name: String,
-    active: bool,
-    elapsed_time: chrono::Duration,
-    overall_time: chrono::Duration,
+    pub fn select (&mut self, active: bool, inactive: bool, name: Option<String>) -> Result<Vec<mysql::Row>, ()> {
+        let mut where_clause = String::from("WHERE ");
+
+        let mut parameters: Vec<(String, mysql::Value)> = Vec::new();
+
+        //This flag indicates whether the 'name' parameter is None or Some
+        let mut name_flag = false;
+
+        /*
+         * Query building
+         */
+        match name {
+            Some(value) => {
+                 parameters.push((String::from("name"), mysql::Value::Bytes(Vec::from(value))));
+                 where_clause += " Name = :name ";
+                 name_flag = true;
+            },
+            None => (),
+        }
+
+        if active && !inactive {
+            if name_flag {
+                where_clause += "AND ";
+            }
+
+            where_clause += "Active = :active";
+            parameters.push((String::from("active"), mysql::Value::Int(1)));
+        }
+
+        if !active && inactive {
+            if name_flag {
+                where_clause += "AND ";
+            }
+
+            where_clause += "Active = :inactive";
+            parameters.push((String::from("inactive"), mysql::Value::Int(0)));
+        }
+
+        if where_clause == "WHERE " { where_clause = String::new() }
+
+        let param: mysql::Params = match parameters.len() {
+                    0 => mysql::Params::from(()),
+                    _ => mysql::Params::from(parameters),
+                };
+
+        //Execute query
+        let query_result =
+            self.connection.prep_exec(
+                format!(
+                    "SELECT * FROM keepers {}", 
+                    where_clause
+                ),
+                param
+            );
+
+        match query_result {
+            Ok(value) => {
+                let mut rows: Vec<mysql::Row> = Vec::new();
+
+                for row in value {
+                    rows.push(row.unwrap());
+                }
+
+                match rows.len() {
+                    0 => Err(()),
+                    _ => Ok(rows)
+                }
+            },
+            Err(_e) => Err(()) 
+        }
+    }
 }
