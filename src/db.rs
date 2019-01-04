@@ -1,5 +1,6 @@
 extern crate mysql;
 use self::mysql::params;
+pub use commands::{SingleId, CreateOpts, ListOpts};
 
 extern crate chrono;
 
@@ -23,7 +24,7 @@ impl SqlHandler {
                 if selected.len() < 1 {
                     connection.prep_exec(
                         r"CREATE TABLE keepers (
-                            Id INT NOT NULL PRIMARY KEY,
+                            Id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
                             Name VARCHAR(100) NOT NULL,
                             Active BOOLEAN NOT NULL,
                             ElapsedTime TIME NOT NULL,
@@ -42,8 +43,7 @@ impl SqlHandler {
         }
     }
 
-
-    pub fn insert (&mut self, inactive: bool, name: String) -> Result<(), ()> {
+    pub fn insert (&mut self, opts: CreateOpts) -> Result<(), ()> {
         let query_result =
             self.connection.prep_exec(
                 "INSERT INTO keepers
@@ -51,8 +51,8 @@ impl SqlHandler {
                 VALUES
                     (:name, :active, :elapsedtime, :overalltime)",
                 params!{
-                    "name" => name, 
-                    "active" => !inactive,
+                    "name" => opts.name, 
+                    "active" => !opts.inactive,
                     "elapsedtime" => chrono::Duration::zero(),
                     "overalltime" => chrono::Duration::zero(),
                 }
@@ -64,19 +64,19 @@ impl SqlHandler {
         }
     }
 
-    pub fn delete (&mut self, id: i32) -> Result<String, ()> {
+    pub fn delete (&mut self, opts: SingleId) -> Result<String, ()> {
         let query_result =
             self.connection.prep_exec(
                 "DELETE FROM keepers 
                  WHERE Id = :id",
-                params!{"id" => id}
+                params!{"id" => opts.id}
             );
 
         match query_result {
             Ok(v) => {
                 if v.affected_rows() == 0 {
                     return Ok(String::from(
-                        format!("Keeper id {}, was not found", id)
+                        format!("Keeper id {}, was not found", opts.id)
                     ))
                 }
 
@@ -86,7 +86,7 @@ impl SqlHandler {
         }
     }
 
-    pub fn update (&mut self, id: i32, value: bool) -> Result<String, ()> {
+    pub fn update (&mut self, opts: SingleId, value: bool) -> Result<String, ()> {
         let query_result =
             self.connection.prep_exec(
                 "UPDATE keepers
@@ -94,7 +94,7 @@ impl SqlHandler {
                  WHERE Id = :id",
                 params!{
                     "active" => value,
-                    "id" => id,
+                    "id" => opts.id,
                 }
             );
 
@@ -102,7 +102,7 @@ impl SqlHandler {
             Ok(v) => {
                 if v.affected_rows() == 0 {
                     return Ok(String::from(
-                        format!("Keeper id {}, was not found", id)
+                        format!("Keeper id {}, was not found", opts.id)
                     ))
                 }
 
@@ -112,7 +112,7 @@ impl SqlHandler {
         }
     }
 
-    pub fn select (&mut self, active: bool, inactive: bool, name: Option<String>) -> Result<Vec<mysql::Row>, ()> {
+    pub fn select (&mut self, opts: ListOpts) -> Result<Vec<mysql::Row>, ()> {
         let mut where_clause = String::from("WHERE ");
 
         let mut parameters: Vec<(String, mysql::Value)> = Vec::new();
@@ -123,7 +123,7 @@ impl SqlHandler {
         /*
          * Query building
          */
-        match name {
+        match opts.name {
             Some(value) => {
                  parameters.push((String::from("name"), mysql::Value::Bytes(Vec::from(value))));
                  where_clause += " Name = :name ";
@@ -132,7 +132,7 @@ impl SqlHandler {
             None => (),
         }
 
-        if active && !inactive {
+        if opts.active && !opts.inactive {
             if name_flag {
                 where_clause += "AND ";
             }
@@ -141,7 +141,7 @@ impl SqlHandler {
             parameters.push((String::from("active"), mysql::Value::Int(1)));
         }
 
-        if !active && inactive {
+        if !opts.active && opts.inactive {
             if name_flag {
                 where_clause += "AND ";
             }

@@ -15,10 +15,10 @@ fn main() {
     println!("{:?}", opt);
 
     match opt {
-        CommandAction::Create { inactive, name } => CreateStrategy::handle(inactive, name),
-        CommandAction::Remove { id } => RemoveStrategy::handle(id),
-        CommandAction::Start { id } => StartStrategy::handle(id),
-        CommandAction::Stop { id } => StopStrategy::handle(id),
-        CommandAction::List { active, inactive, name } => ListStrategy::handle(active, inactive, name),
+        CommandAction::Create(create_opts) => CreateStrategy::handle(create_opts),
+        CommandAction::Remove(single_id) => RemoveStrategy::handle(single_id),
+        CommandAction::Start(single_id) => StartStrategy::handle(single_id),
+        CommandAction::Stop(single_id) => StopStrategy::handle(single_id),
+        CommandAction::List(list_opts) => ListStrategy::handle(list_opts),
     }
 }

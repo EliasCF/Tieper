@@ -1,14 +1,15 @@
 pub use db::SqlHandler;
+pub use commands::ListOpts;
 
 extern crate chrono;
 
 pub struct ListStrategy {}
 
 impl ListStrategy {
-    pub fn handle (active: bool, inactive: bool, name: Option<String>) {
+    pub fn handle (opts: ListOpts) {
         let mut handler = SqlHandler::new();
 
-        match handler.select(active, inactive, name) {
+        match handler.select(opts) {
             Ok(v) => {
                 for row in v {
                     println!("Id: {} \r\nName: {} \r\nActive: {} \r\nElapsedTime: {} \r\nOverallTime: {}\r\n\r\n", 

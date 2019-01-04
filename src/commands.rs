@@ -4,29 +4,34 @@ use structopt::StructOpt;
 #[derive(StructOpt, Debug)]
 pub enum CommandAction {
     #[structopt(name = "create")]
-    Create {
-        #[structopt(short = "i")]
-        inactive: bool,
-        name: String,
-    },
+    Create(CreateOpts),
     #[structopt(name = "remove")]
-    Remove {
-        id: i32
-    },
+    Remove(SingleId),
     #[structopt(name = "start")]
-    Start {
-        id: i32
-    },
+    Start(SingleId),
     #[structopt(name = "stop")]
-    Stop {
-        id: i32
-    },
+    Stop(SingleId),
     #[structopt(name = "list")]
-    List {
-        #[structopt(short = "a")]
-        active: bool,
-        #[structopt(short = "i")]
-        inactive: bool,
-        name: Option<String>
-    },
+    List(ListOpts),
+}
+
+#[derive(StructOpt, Debug)]
+pub struct SingleId {
+    pub id: i32
+}
+
+#[derive(StructOpt, Debug)]
+pub struct CreateOpts {
+    #[structopt(short = "i")]
+    pub inactive: bool,
+    pub name: String
+}
+
+#[derive(StructOpt, Debug)]
+pub struct ListOpts {
+    #[structopt(short = "a")]
+    pub active: bool,
+    #[structopt(short = "i")]
+    pub inactive: bool,
+    pub name: Option<String>
 }

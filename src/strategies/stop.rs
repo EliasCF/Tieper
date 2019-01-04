@@ -1,14 +1,13 @@
 pub use db::SqlHandler;
+pub use commands::SingleId;
 
 pub struct StopStrategy {}
 
 impl StopStrategy {
-    pub fn handle (id: i32) {
-        println!("{}", id);
-
+    pub fn handle (opts: SingleId) {
         let mut handler = SqlHandler::new();
 
-        match handler.update(id, false) {
+        match handler.update(opts, false) {
             Ok(v) => println!("{}", v),
             Err(_) => println!("The sql transaction was not successful"),
         }
