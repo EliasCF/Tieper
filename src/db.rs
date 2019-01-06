@@ -1,186 +1,99 @@
-extern crate mysql;
-use self::mysql::params;
+extern crate sqlite;
+
+use std::path::Path;
+
 pub use commands::{SingleId, CreateOpts, ListOpts};
 
 extern crate chrono;
 
 pub struct SqlHandler {
-    connection: mysql::Conn,
+    connection: sqlite::Connection,
 }
 
 impl SqlHandler {
     pub fn new () -> SqlHandler {
-        match mysql::Conn::new("mysql://root:@localhost:3306/keepersdb") {
-            Ok(mut connection) => {
-                //Make sure that the table 'keepers' exists
-                let selected: Vec<String> = 
-                    connection.prep_exec("SHOW TABLES LIKE 'keepers'", ()).map(|result| {
-                        result.map(|x| x.unwrap()).map(|row| {
-                            mysql::from_row(row)
-                        }).collect()
-                    }).unwrap();
-
-                //Generate a table if no table was found
-                if selected.len() < 1 {
-                    connection.prep_exec(
-                        r"CREATE TABLE keepers (
-                            Id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-                            Name VARCHAR(100) NOT NULL,
-                            Active BOOLEAN NOT NULL,
-                            ElapsedTime TIME NOT NULL,
-                            OverallTime TIME NOT NULL
-                        );", ()
-                    ).unwrap();
-                }
+        match sqlite::open(Path::new("./keeperdb.db")) {
+            Ok(conn) => {
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS keepers (
+                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         Name VARCHAR(50) NOT NULL,
+                         Active BOOLEAN NOT NULL,
+                         ElapsedTime VARCHAR(50) NOT NULL,
+                         OverallTime VARCHAR(50) NOT NULL
+                     )").unwrap();
 
                 SqlHandler {
-                    connection: connection,
+                    connection: conn
                 }
             },
             Err(error) => {
-                panic!("The program was unable to connect to the database: {}", error)
+                panic!("{}", error);
             }
         }
     }
 
     pub fn insert (&mut self, opts: CreateOpts) -> Result<(), ()> {
-        let query_result =
-            self.connection.prep_exec(
-                "INSERT INTO keepers
+        let query = 
+            format!(
+                "INSERT INTO keepers 
                     (Name, Active, ElapsedTime, OverallTime)
-                VALUES
-                    (:name, :active, :elapsedtime, :overalltime)",
-                params!{
-                    "name" => opts.name, 
-                    "active" => !opts.inactive,
-                    "elapsedtime" => chrono::Duration::zero(),
-                    "overalltime" => chrono::Duration::zero(),
-                }
+                 VALUES
+                    ('{}', {}, '{}', '{}')", 
+                opts.name,
+                !opts.inactive,
+                chrono::Duration::zero().num_seconds().to_string(),
+                chrono::Duration::zero().num_seconds().to_string()
             );
 
-        match query_result {
-            Ok(_v) => Ok(()),
-            Err(_e) => Err(())
-        }
+        self.connection
+            .execute(query)
+            .unwrap();
+
+        Ok(())
     }
 
     pub fn delete (&mut self, opts: SingleId) -> Result<String, ()> {
-        let query_result =
-            self.connection.prep_exec(
-                "DELETE FROM keepers 
-                 WHERE Id = :id",
-                params!{"id" => opts.id}
+        let query = 
+            format!(
+                "DELETE FROM keepers
+                 WHERE Id = {}",
+                 opts.id
             );
+        
+        self.connection
+            .execute(query)
+            .unwrap();
 
-        match query_result {
-            Ok(v) => {
-                if v.affected_rows() == 0 {
-                    return Ok(String::from(
-                        format!("Keeper id {}, was not found", opts.id)
-                    ))
-                }
-
-                return Ok(String::from("Success"))
-            },
-            Err(_e) => Err(())
-        }
+        Ok(String::new())
     }
 
     pub fn update (&mut self, opts: SingleId, value: bool) -> Result<String, ()> {
-        let query_result =
-            self.connection.prep_exec(
+        let query = 
+            format!(
                 "UPDATE keepers
-                 SET Active = :active
-                 WHERE Id = :id",
-                params!{
-                    "active" => value,
-                    "id" => opts.id,
-                }
+                 SET Active = {}
+                 WHERE Id = {}",
+                 value,
+                 opts.id
             );
 
-        match query_result {
-            Ok(v) => {
-                if v.affected_rows() == 0 {
-                    return Ok(String::from(
-                        format!("Keeper id {}, was not found", opts.id)
-                    ))
-                }
+        self.connection
+            .execute(query)
+            .unwrap();
 
-                return Ok(String::from("Success"))
-            },
-            Err(_e) => Err(())
-        }
+        Ok(String::new())
     }
 
-    pub fn select (&mut self, opts: ListOpts) -> Result<Vec<mysql::Row>, ()> {
-        let mut where_clause = String::from("WHERE ");
-
-        let mut parameters: Vec<(String, mysql::Value)> = Vec::new();
-
-        //This flag indicates whether the 'name' parameter is None or Some
-        let mut name_flag = false;
-
-        /*
-         * Query building
-         */
-        match opts.name {
-            Some(value) => {
-                 parameters.push((String::from("name"), mysql::Value::Bytes(Vec::from(value))));
-                 where_clause += " Name = :name ";
-                 name_flag = true;
-            },
-            None => (),
-        }
-
-        if opts.active && !opts.inactive {
-            if name_flag {
-                where_clause += "AND ";
+    pub fn select (&mut self, opts: ListOpts) -> Result<Vec<String>, ()> {
+        self.connection.iterate("SELECT * FROM keepers", |paris| {
+            for &(column, value) in paris.iter() {
+                println!("{} = {}", column, value.unwrap());
             }
+            true
+        })
+        .unwrap();
 
-            where_clause += "Active = :active";
-            parameters.push((String::from("active"), mysql::Value::Int(1)));
-        }
-
-        if !opts.active && opts.inactive {
-            if name_flag {
-                where_clause += "AND ";
-            }
-
-            where_clause += "Active = :inactive";
-            parameters.push((String::from("inactive"), mysql::Value::Int(0)));
-        }
-
-        if where_clause == "WHERE " { where_clause = String::new() }
-
-        let param: mysql::Params = match parameters.len() {
-                    0 => mysql::Params::from(()),
-                    _ => mysql::Params::from(parameters),
-                };
-
-        //Execute query
-        let query_result =
-            self.connection.prep_exec(
-                format!(
-                    "SELECT * FROM keepers {}", 
-                    where_clause
-                ),
-                param
-            );
-
-        match query_result {
-            Ok(value) => {
-                let mut rows: Vec<mysql::Row> = Vec::new();
-
-                for row in value {
-                    rows.push(row.unwrap());
-                }
-
-                match rows.len() {
-                    0 => Err(()),
-                    _ => Ok(rows)
-                }
-            },
-            Err(_e) => Err(()) 
-        }
+        Ok(Vec::new())
     }
 }
