@@ -83,8 +83,38 @@ impl SqlHandler {
     }
 
     pub fn select (&mut self, opts: ListOpts) -> Result<(), ()> {
+        let mut where_clause = String::from("WHERE ");
+
+        let mut name_flag = false;
+
+        match opts.name {
+            Some(name) => {
+                where_clause += format!("Name = '{}' ", name).as_str();
+                name_flag = true;
+            },
+            None => ()
+        }
+
+        if opts.active && !opts.inactive {
+            if name_flag {
+                where_clause += "AND ";
+            }
+
+            where_clause += "Active = true";
+        }
+
+        if !opts.active && opts.inactive {
+            if name_flag {
+                where_clause += "AND ";
+            }
+
+            where_clause += "Active = false";
+        }
+
+        if where_clause == "WHERE " { where_clause = String::new() }
+
         let query_reslut =
-            self.connection.iterate("SELECT * FROM keepers", |paris| {
+            self.connection.iterate(format!("SELECT * FROM keepers {}", where_clause), |paris| {
                 for &(column, value) in paris.iter() {
                     println!("{} = {}", column, value.unwrap());
                 }
