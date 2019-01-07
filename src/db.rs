@@ -46,14 +46,13 @@ impl SqlHandler {
                 chrono::Duration::zero().num_seconds().to_string()
             );
 
-        self.connection
-            .execute(query)
-            .unwrap();
-
-        Ok(())
+        match self.connection.execute(query) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(())
+        }
     }
 
-    pub fn delete (&mut self, opts: SingleId) -> Result<String, ()> {
+    pub fn delete (&mut self, opts: SingleId) -> Result<(), ()> {
         let query = 
             format!(
                 "DELETE FROM keepers
@@ -61,14 +60,13 @@ impl SqlHandler {
                  opts.id
             );
         
-        self.connection
-            .execute(query)
-            .unwrap();
-
-        Ok(String::new())
+        match self.connection.execute(query) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(())
+        }
     }
 
-    pub fn update (&mut self, opts: SingleId, value: bool) -> Result<String, ()> {
+    pub fn update (&mut self, opts: SingleId, value: bool) -> Result<(), ()> {
         let query = 
             format!(
                 "UPDATE keepers
@@ -78,22 +76,24 @@ impl SqlHandler {
                  opts.id
             );
 
-        self.connection
-            .execute(query)
-            .unwrap();
-
-        Ok(String::new())
+        match self.connection.execute(query) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(())
+        }
     }
 
-    pub fn select (&mut self, opts: ListOpts) -> Result<Vec<String>, ()> {
-        self.connection.iterate("SELECT * FROM keepers", |paris| {
-            for &(column, value) in paris.iter() {
-                println!("{} = {}", column, value.unwrap());
-            }
-            true
-        })
-        .unwrap();
+    pub fn select (&mut self, opts: ListOpts) -> Result<(), ()> {
+        let query_reslut =
+            self.connection.iterate("SELECT * FROM keepers", |paris| {
+                for &(column, value) in paris.iter() {
+                    println!("{} = {}", column, value.unwrap());
+                }
+                true
+            });
 
-        Ok(Vec::new())
+        match query_reslut {
+            Ok(_) => Ok(()),
+            Err(_) => Err(())
+        }
     }
 }

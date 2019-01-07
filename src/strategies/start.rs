@@ -8,7 +8,7 @@ impl StartStrategy {
         let mut handler = SqlHandler::new();
 
         match handler.update(opts, true) {
-            Ok(v) => println!("{}", v),
+            Ok(_) => (),
             Err(_) => println!("The sql transaction was not successful"),
         }
     }

@@ -8,7 +8,7 @@ impl RemoveStrategy {
         let mut handler = SqlHandler::new();
         
         match handler.delete(opts) {
-            Ok(v) => println!("{}", v),
+            Ok(_) => (),
             Err(_) => println!("The sql transaction was not successful"),
         }
     }
