@@ -1,5 +1,7 @@
 #![windows_subsystem = "windows"]
 
+pub mod db;
+
 fn main() {
-    println!("Hello, world!");
+    let database = db::SqlHandler::new();
 }

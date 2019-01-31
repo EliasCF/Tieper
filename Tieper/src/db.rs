@@ -12,7 +12,7 @@ pub struct SqlHandler {
 
 impl SqlHandler {
     pub fn new () -> SqlHandler {
-        match sqlite::open(Path::new("./keeperdb.db")) {
+        match sqlite::open(Path::new("../../keeperdb.db")) {
             Ok(conn) => {
                 conn.execute(
                     "CREATE TABLE IF NOT EXISTS keepers (

@@ -5,3 +5,4 @@ authors = ["EliasCF <edimbo4@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+sqlite = "0.24.0"
